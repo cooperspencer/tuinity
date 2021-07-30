@@ -1,7 +1,18 @@
-FROM debian:buster-slim AS builder
+FROM adoptopenjdk/openjdk16:latest AS build
+
+ARG tuinity_ci_url=https://ci.codemc.io/job/Spottedleaf/job/Tuinity-1.17/lastSuccessfulBuild/artifact/tuinity-paperclip.jar
+ENV TUINITY_CI_URL=$tuinity_ci_url
+
 WORKDIR /opt/minecraft
-RUN apt-get update; apt-get install --yes wget
-RUN wget https://ci.codemc.io/job/Spottedleaf/job/Tuinity-1.17/lastSuccessfulBuild/artifact/tuinity-paperclip.jar
+
+# Download tuinity_unpatched
+ADD ${TUINITY_CI_URL} tuinity_unpatched.jar
+
+# Run tuinity_unpatched and obtain patched jar
+RUN /opt/java/openjdk/bin/java -jar /opt/minecraft/tuinity_unpatched.jar; exit 0
+
+# Copy built jar
+RUN mv /opt/minecraft/cache/patched*.jar tuinity.jar
 
 FROM adoptopenjdk/openjdk16:latest AS runtime
 
@@ -9,7 +20,7 @@ FROM adoptopenjdk/openjdk16:latest AS runtime
 WORKDIR /data
 
 # Obtain runable jar from build stage
-COPY --from=builder /opt/minecraft/tuinity-paperclip.jar /opt/minecraft/tuinity-paperclip.jar
+COPY --from=build /opt/minecraft/tuinity.jar /opt/minecraft/tuinity.jar
 
 # Volumes for the external data
 VOLUME "/data"
@@ -29,4 +40,4 @@ ENV JAVAFLAGS=$java_flags
 WORKDIR /data
 
 # Entrypoint with java optimisations
-ENTRYPOINT /opt/java/openjdk/bin/java -jar -Xms$MEMORYSIZE -Xmx$MEMORYSIZE $JAVAFLAGS /opt/minecraft/tuinity-paperclip.jar --nojline nogui
+ENTRYPOINT /opt/java/openjdk/bin/java -jar -Xms$MEMORYSIZE -Xmx$MEMORYSIZE $JAVAFLAGS /opt/minecraft/tuinity.jar --nojline nogui
