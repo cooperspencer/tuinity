@@ -1,4 +1,4 @@
-FROM adoptopenjdk/openjdk16:latest AS build
+FROM openjdk:16-slim AS build
 
 ARG tuinity_ci_url=https://ci.codemc.io/job/Spottedleaf/job/Tuinity-1.17/lastSuccessfulBuild/artifact/tuinity-paperclip.jar
 ENV TUINITY_CI_URL=$tuinity_ci_url
@@ -9,12 +9,12 @@ WORKDIR /opt/minecraft
 ADD ${TUINITY_CI_URL} tuinity_unpatched.jar
 
 # Run tuinity_unpatched and obtain patched jar
-RUN /opt/java/openjdk/bin/java -jar /opt/minecraft/tuinity_unpatched.jar; exit 0
+RUN /usr/local/openjdk-16/bin/java -jar /opt/minecraft/tuinity_unpatched.jar; exit 0
 
 # Copy built jar
 RUN mv /opt/minecraft/cache/patched*.jar tuinity.jar
 
-FROM adoptopenjdk/openjdk16:latest AS runtime
+FROM openjdk:16-slim AS runtime
 
 # Working directory
 WORKDIR /data
@@ -40,4 +40,4 @@ ENV JAVAFLAGS=$java_flags
 WORKDIR /data
 
 # Entrypoint with java optimisations
-ENTRYPOINT /opt/java/openjdk/bin/java -jar -Xms$MEMORYSIZE -Xmx$MEMORYSIZE $JAVAFLAGS /opt/minecraft/tuinity.jar --nojline nogui
+ENTRYPOINT /usr/local/openjdk-16/bin/java -jar -Xms$MEMORYSIZE -Xmx$MEMORYSIZE $JAVAFLAGS /opt/minecraft/tuinity.jar --nojline nogui
